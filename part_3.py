@@ -70,7 +70,7 @@ def cross_my_val_score(classifier, classifier_name, x_cross_val, y_cross_val):
     print("%20s Accuracy: %0.2f (+/- %0.2f), time:%.4f" % (classifier_name, scores.mean(), scores.std() * 2, stop - start))
 
 
-def model(model,features_train, features_test, labels_train, labels_test):
+def model_confussion_matrix(model,features_train, features_test, labels_train, labels_test):
     clf = model
     clf.fit(features_train, labels_train.values.ravel())
     pred = clf.predict(features_test)
@@ -150,7 +150,7 @@ def under_sampling():
         print("------------------------------------------------------------")
         print()
 
-        model(classifier, x_train, x_test, y_train, y_test)
+        model_confussion_matrix(classifier, x_train, x_test, y_train, y_test)
 
         print()
         print("------------------------------------------------------------")
@@ -210,7 +210,7 @@ def smote_sampling():
         print("------------------------------------------------------------")
         print()
 
-        model(classifier, x_train, x_test, y_train, y_test)
+        model_confussion_matrix(classifier, x_train, x_test, y_train, y_test)
 
         print()
         print("------------------------------------------------------------")
