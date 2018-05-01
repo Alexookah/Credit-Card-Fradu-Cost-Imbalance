@@ -4,11 +4,9 @@ import seaborn as sns
 import matplotlib.pyplot as plt
 import time
 
-from sklearn.decomposition import PCA
-from sklearn.preprocessing import StandardScaler, LabelEncoder
 from sklearn.metrics import confusion_matrix,recall_score,precision_recall_curve,auc,roc_curve,roc_auc_score,classification_report
 
-from sklearn.model_selection import train_test_split # to split the data
+from sklearn.model_selection import train_test_split
 from sklearn.model_selection import cross_val_score
 from sklearn.svm import SVC
 from sklearn.ensemble import RandomForestClassifier
@@ -62,24 +60,14 @@ def train_data(classifier, label, x_train, y_train, x_test, y_test):
     print("trained {c} in {f:.2f} s".format(c=label, f=t_diff))
 
 
+def cross_my_val_score(classifier, classifier_name, x_cross_val, y_cross_val):
 
-def cross_my_val_score(classifiers, x_cross_val, y_cross_val):
-    best_score = 0.0
-    best_classifier = ""
-    for classifier, label in classifiers:
-        print("Running... Cross validation with Classifier: ", label)
-        start = time.time()
-        scores = cross_val_score(classifier, x_cross_val, y_cross_val, cv=3)
-        stop = time.time()
-        print("Cross - validated scores", scores)
-        print("%20s Accuracy: %0.2f (+/- %0.2f), time:%.4f" % (label, scores.mean(), scores.std() * 2, stop - start))
-        if scores.mean() > best_score:
-            best_score = scores.mean()
-            best_classifier = label
-
-    print("Best Score: ", best_score)
-    print("Best Classifier: ", best_classifier)
-    return best_classifier
+    print("Running... Cross validation with Classifier: ", classifier_name)
+    start = time.time()
+    scores = cross_val_score(classifier, x_cross_val, y_cross_val, cv=10)
+    stop = time.time()
+    print("Cross - validated scores", scores)
+    print("%20s Accuracy: %0.2f (+/- %0.2f), time:%.4f" % (classifier_name, scores.mean(), scores.std() * 2, stop - start))
 
 
 def model(model,features_train, features_test, labels_train, labels_test):
@@ -88,11 +76,11 @@ def model(model,features_train, features_test, labels_train, labels_test):
     pred = clf.predict(features_test)
     cnf_matrix = confusion_matrix(labels_test, pred)
     print("the recall for this model is :", cnf_matrix[1, 1] / (cnf_matrix[1, 1] + cnf_matrix[1, 0]))
-    fig = plt.figure(figsize=(6, 3)) # to plot the graph
-    print("TP", cnf_matrix[1, 1, ]) # no of fraud transaction which are predicted fraud
-    print("TN", cnf_matrix[0, 0]) # no. of normal transaction which are predited normal
-    print("FP", cnf_matrix[0, 1]) # no of normal transaction which are predicted fraud
-    print("FN", cnf_matrix[1,0 ]) # no of fraud Transaction which are predicted normal
+    fig = plt.figure(figsize=(6, 3))  # to plot the graph
+    print("TP", cnf_matrix[1, 1, ])  # number of fraud transaction which are predicted fraud
+    print("TN", cnf_matrix[0, 0])  # number of normal transaction which are predited normal
+    print("FP", cnf_matrix[0, 1])  # number of normal transaction which are predicted fraud
+    print("FN", cnf_matrix[1, 0 ])  # number of fraud Transaction which are predicted normal
     sns.heatmap(cnf_matrix, cmap="coolwarm_r", annot=True, linewidths=0.5)
     plt.title("Confusion_matrix")
     plt.xlabel("Predicted_class")
@@ -102,21 +90,21 @@ def model(model,features_train, features_test, labels_train, labels_test):
     print(classification_report(labels_test,pred))
 
 
-def under_sample(data, normal_indices, fraud_indices, count_fraud_transaction, times):
+def random_under_sample(data, normal_indices, fraud_indices, count_fraud_transaction, times):
     print("len", count_fraud_transaction)
     normal_indices = np.array(
         np.random.choice(normal_indices, (times * count_fraud_transaction), replace=False))
-    undersample_data = np.concatenate([fraud_indices, normal_indices])
-    undersample_data = data.iloc[undersample_data, :]
+    under_sample_data = np.concatenate([fraud_indices, normal_indices])
+    under_sample_data = data.iloc[under_sample_data, :]
 
     total = len(normal_indices) + len(fraud_indices)
     print("len total", total)
     print("the normal transaction proportion is :",
-          len(undersample_data[undersample_data.Class == 0]) / total)
+          len(under_sample_data[under_sample_data.Class == 0]) / total)
     print("the fraud transaction proportion is :",
-          len(undersample_data[undersample_data.Class == 1]) / total)
+          len(under_sample_data[under_sample_data.Class == 1]) / total)
     print("total number of record in resampled data is:", total)
-    return undersample_data
+    return under_sample_data
 
 
 def under_sampling():
@@ -128,7 +116,7 @@ def under_sampling():
     fraud_indices = np.array(data[data.Class == 1].index)
     normal_indices = np.array(data[data.Class == 0].index)
 
-    under_sample_data = under_sample(data, normal_indices, fraud_indices, count_fraud_transaction, 1)
+    under_sample_data = random_under_sample(data, normal_indices, fraud_indices, count_fraud_transaction, 1)
 
     x = under_sample_data.ix[:, under_sample_data.columns != "Class"]
     y = under_sample_data.ix[:, under_sample_data.columns == "Class"]
@@ -186,12 +174,15 @@ def smote_sampling():
     over_sampling_data_x = pd.DataFrame(data=over_sampling_data_x, columns=x_train.columns)
     over_sampling_data_y = pd.DataFrame(data=over_sampling_data_y, columns=["Class"])
 
-    print("length of oversampled data is ", len(over_sampling_data_x))
-    print("Number of normal transcation in oversampled data", len(over_sampling_data_y[over_sampling_data_y["Class"] == 0]))
-    print("No.of fraud transcation", len(over_sampling_data_y[over_sampling_data_y["Class"] == 1]))
+    length_of_y_normal = len(over_sampling_data_y[over_sampling_data_y["Class"] == 0])
+    length_of_y_fraud = len(over_sampling_data_y[over_sampling_data_y["Class"] == 1])
 
-    print("Proportion of Normal data in oversampled data is ", len(over_sampling_data_y[over_sampling_data_y["Class"] == 0]) / len(over_sampling_data_x))
-    print("Proportion of fraud data in oversampled data is ", len(over_sampling_data_y[over_sampling_data_y["Class"] == 1]) / len(over_sampling_data_x))
+    print("length of oversampled data is ", len(over_sampling_data_x))
+    print("Number of normal transaction in oversampled data", length_of_y_normal)
+    print("Number of fraud transaction", length_of_y_fraud)
+
+    print("Proportion of Normal data in oversampled data is ", length_of_y_normal / len(over_sampling_data_x))
+    print("Proportion of fraud data in oversampled data is ", length_of_y_fraud / len(over_sampling_data_x))
 
     print("length of training data")
     print(len(x_train))
@@ -209,7 +200,7 @@ def smote_sampling():
 
         print("Running... Cross validation with Classifier: ", classifier_name)
         start = time.time()
-        scores = cross_val_score(classifier, x, y.values.ravel(), cv=10)
+        scores = cross_val_score(classifier, classifier_name, x, y.values.ravel(), cv=10)
         stop = time.time()
         print("Cross - validated scores", scores)
         print("%20s Accuracy: %0.2f (+/- %0.2f), time:%.4f" % (
@@ -228,5 +219,5 @@ def smote_sampling():
         count += 1
 
 
-#under_sampling()
-smote_sampling()
+under_sampling()
+#smote_sampling()
